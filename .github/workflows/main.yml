@@ -1,0 +1,26 @@
+on:
+  issues:
+    types: 
+      - opened
+
+jobs:
+  ocaml_test_job:
+    runs-on: ubuntu-latest
+    name: A job to test OCaml
+
+    permissions: read-all
+
+    steps:
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: OCaml test action step
+        uses: ./ # Uses an action in the root directory
+        id: ocaml_test
+        with:
+          issue_num: ${{ github.event.issue.number }}
+          issue_contents: ${{ github.event.issue.body }}
+      # Use the output from the `ocaml_test` step
+      - name: Get the output string
+        run: echo "The output was ${{ steps.ocaml_test.outputs.string }}"
