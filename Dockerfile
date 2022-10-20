@@ -1,4 +1,3 @@
-FROM prosyslab/classroom
+FROM prosyslab/dude
 COPY entrypoint.sh /entrypoint.sh
-USER 0
 ENTRYPOINT ["/entrypoint.sh"]
