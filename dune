@@ -1,2 +1,3 @@
 (executable
- (name ocaml_test))
+ (name dup_scan)
+ (libraries cohttp-lwt-unix yojson))
