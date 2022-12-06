@@ -1,4 +1,4 @@
-name: 'Duplication Detecting Action'
+name: 'DUplication DEtector'
 description: 'Scan every existing issue and inform the issuer if any duplication detected'
 branding:
   icon: 'alert-circle'
