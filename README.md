@@ -1,4 +1,4 @@
-# Dude-test
+# Dude
 
 This action is triggered when a new issue has been created.  
 Then it compares the new issue's contents with existing issues' contents, and detect possible duplications.  
