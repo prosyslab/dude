@@ -45,11 +45,6 @@ If any possible duplication is deteced, it will contains the issue number of it.
 Otherwise, it will be -1.
 
 ## Example usage
-
-<!-- uses: actions/hello-world-docker-action@v1 -->
-<!-- with:
-  who-to-greet: 'Mona the Octocat' -->
-
 ```
 env:
   rapid_key: ${{ secrets.RAPID_KEY }}
@@ -64,6 +59,7 @@ with:
   repository_path_name: ${{ github.repository }}
   rapid_key: ${{ env.rapid_key }}
   repo_key: ${{ env.repo_key }}
+  threshold: 0.2  # default: 0.2
 ```
 
 ## Plans for updates
