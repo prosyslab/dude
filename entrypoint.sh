@@ -23,4 +23,4 @@ env LESSOPEN=| /usr/bin/lesspipe %s > /dev/null
 env OLDPWD=/roote > /dev/null
 PATH=/root/.opam/default/bin:$PATH > /dev/null
 
-dune exec ./dup_scan.exe $1 "contents:$2" $3 $4 "$5" "$6" # $1: issue_num, $2: issue_contents, $3: repository_path_name, $4: rapid_key, $5: repo_key, $6: threshold
+dune exec dup_scan.exe $1 "contents:$2" $3 $4 "$5" "$6" # $1: issue_num, $2: issue_contents, $3: repository_path_name, $4: rapid_key, $5: repo_key, $6: threshold
