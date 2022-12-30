@@ -4,7 +4,7 @@ This action is triggered when a new issue has been created.
 Then it compares the new issue's contents with existing issues' contents, and detect possible duplications.  
 If any possible duplication is detected, it will inform the issuer through comment.
 
-**Currently this action is paritial: you should copy `dune`, `dune-project` and `dup_scan.ml` from [the underlying repository](https://github.com/prosyslab/dude) into the root directory of your repository. Sorry for the inconvenience, and we will fix this issue ASAP.**
+**This action is partial: to use this action, you should copy `dune`, `dune-project` and `dup_scan.ml` from [the underlying repository](https://github.com/prosyslab/dude) into the root directory of your repository.**
 
 ## Inputs
 
