@@ -54,7 +54,7 @@ env:
 
 ...
 
-uses: prosyslab/dude@v1.0.3 
+uses: prosyslab/dude@v1.0.4 
 with:   
   issue_num: ${{ github.event.issue.number }}
   issue_contents: ${{ github.event.issue.body }}
