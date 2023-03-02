@@ -41,10 +41,10 @@ let rec get_issues page_num res =
     let _ =
       List.iter2
         (fun content num ->
-          Printf.printf "contents: %s, num: %d\n" content num;
+          Printf.eprintf "contents: %s, num: %d\n" content num;
           if num != int_of_string Sys.argv.(1) then
             let _ = map_ConNum := ConNum.add content num !map_ConNum in
-            Printf.printf "put %d\n" num)
+            Printf.eprintf "put %d\n" num)
         issue_list num_list
     in
 
@@ -74,10 +74,10 @@ let () =
           (`String (String.sub Sys.argv.(2) 9 (String.length Sys.argv.(2) - 9)))
       in
       let text2 = Yojson.Basic.to_string (`String issue_contents) in
-      Printf.printf "Text1:%s\nText2:%s\n\n" text1 text2;
+      Printf.eprintf "Text1:%s\nText2:%s\n\n" text1 text2;
 
       if ConNum.mem issue_contents !map_ConNum then
-        let _ = Printf.printf "Comparison %s and %s\n" text1 text2 in
+        let _ = Printf.eprintf "Comparison %s and %s\n" text1 text2 in
         let body =
           Client.get ~headers:sim_header
             (Uri.of_string
@@ -95,11 +95,11 @@ let () =
         if cur_sim > threshold_sim && cur_sim > !max_sim then
           let _ = max_sim := cur_sim in
           let _ = max_contents := issue_contents in
-          Printf.printf "max updated! sim: %f, contents: %s\n" !max_sim
+          Printf.eprintf "max updated! sim: %f, contents: %s\n" !max_sim
             !max_contents)
     (get_issues 1 [])
 
-let _ = Printf.printf "%s has %f\n" !max_contents !max_sim
+let _ = Printf.eprintf "%s has %f\n" !max_contents !max_sim
 
 let _ =
   if !max_sim != -1.0 then
@@ -136,7 +136,7 @@ let _ =
           ^ Sys.argv.(1) ^ "/comments"))
       >>= fun (resp, body) ->
       let code = resp |> Response.status |> Code.code_of_status in
-      Printf.printf "Response code: %d\n" code;
+      Printf.eprintf "Response code: %d\n" code;
       Cohttp_lwt.Body.to_string body
     in
 
