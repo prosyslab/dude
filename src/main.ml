@@ -47,7 +47,6 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
         ("content-type", "application/x-www-form-urlencoded");
       ]
   in
-
   IntMap.fold
     (fun num content (max_sim, max_num) ->
       if num = issue_num then (max_sim, max_num)
@@ -78,13 +77,8 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
         else (max_sim, max_num))
     map (0.0, -1)
 
-let write_comment repo repo_key max_num =
-  let _ =
-    Sys.command
-      ("echo \"dup_num=" ^ Int.to_string max_num ^ "\" >> $GITHUB_OUTPUT")
-  in
+let write_comment issue_num repo repo_key max_num =
   let body =
-    (* Leave a comment *)
     let comment_body =
       Cohttp_lwt.Body.of_string
         (Yojson.Basic.to_string
@@ -101,17 +95,15 @@ let write_comment repo repo_key max_num =
         (Cohttp.Header.init_with "accept" "application/vnd.github+json")
         (Cohttp.Auth.credential_of_string ("Bearer " ^ repo_key))
     in
-
     Client.post ~body:comment_body ~headers:comment_header
       (Uri.of_string
-         ("https://api.github.com/repos/" ^ repo ^ "/issues/" ^ Sys.argv.(1)
-        ^ "/comments"))
+         ("https://api.github.com/repos/" ^ repo ^ "/issues/"
+        ^ string_of_int issue_num ^ "/comments"))
     >>= fun (resp, body) ->
     let code = resp |> Response.status |> Code.code_of_status in
     Printf.eprintf "Response code: %d\n" code;
     Cohttp_lwt.Body.to_string body
   in
-
   let body = Lwt_main.run body in
   print_endline body
 
@@ -130,9 +122,6 @@ let main argv =
   let max_sim, max_num =
     find_max_sim issue_num issue_contents rapid_key threshold map
   in
-  if max_sim != -1.0 then write_comment repo repo_key max_num
-  else
-    let _ = Sys.command "echo \"dup_num=-1\" >> $GITHUB_OUTPUT" in
-    ()
+  if max_sim != -1.0 then write_comment issue_num repo repo_key max_num else ()
 
 let _ = main Sys.argv
