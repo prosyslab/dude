@@ -16,15 +16,21 @@ let rec get_issues page_num res =
             let open Yojson.Basic.Util in
                 ([body |> Yojson.Basic.from_string]
                     |> flatten
-                    |> filter_member "body"
-                    |> filter_string,
+                    |> filter_member "body",
+                    (* |> to_string_option, *)
+                    (* |> filter_string, *)
                 [body |> Yojson.Basic.from_string]
                     |> flatten
                     |> filter_member "number"
+                    (* |> to_int_option, *)
                     |> filter_int) 
     in
 
-    let issue_list = fst issue_tup in
+    let issue_list = List.map (fun issue_raw -> 
+        let issue_opt = (Yojson.Basic.Util.to_string_option issue_raw) in
+            if Option.is_some issue_opt then Option.get issue_opt
+            else ""
+        ) (fst issue_tup) in
     let num_list = snd issue_tup in
 
     if List.length issue_list == 0 then []
