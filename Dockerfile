@@ -1,3 +1,3 @@
-FROM prosyslab/dude:contain-test
+FROM prosyslab/dude:latest
 COPY entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
