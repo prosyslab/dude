@@ -1,91 +1,72 @@
 open Lwt
 open Cohttp
 open Cohttp_lwt_unix
-module ConNum = Map.Make (String)
 
-let map_ConNum = ref ConNum.empty
+module IntMap = Map.Make (struct
+  type t = int
 
-let rec get_issues page_num res =
+  let compare = compare
+end)
+
+let rec get_issues repo page_num map =
   let body =
     Client.get
       ~headers:(Cohttp.Header.init_with "accept" "application/vnd.github+json")
       (Uri.of_string
-         ("https://api.github.com/repos/" ^ Sys.argv.(3)
+         ("https://api.github.com/repos/" ^ repo
         ^ "/issues?state=all&per_page=100&" ^ "page=" ^ Int.to_string page_num))
     >>= fun (_, body) -> Cohttp_lwt.Body.to_string body
   in
 
-  let issue_tup =
-    let body = Lwt_main.run body in
+  let bodies, numbers =
     let open Yojson.Basic.Util in
-    ( [ body |> Yojson.Basic.from_string ] |> flatten |> filter_member "body",
-      (* |> to_string_option, *)
-      (* |> filter_string, *)
-      [ body |> Yojson.Basic.from_string ]
-      |> flatten |> filter_member "number"
-      (* |> to_int_option, *)
-      |> filter_int )
+    let response = Lwt_main.run body in
+    let body = [ response |> Yojson.Basic.from_string ] |> flatten in
+    (body |> filter_member "body", body |> filter_member "number" |> filter_int)
   in
-
   let issue_list =
     List.map
       (fun issue_raw ->
         let issue_opt = Yojson.Basic.Util.to_string_option issue_raw in
         if Option.is_some issue_opt then Option.get issue_opt else "")
-      (fst issue_tup)
+      bodies
   in
-  let num_list = snd issue_tup in
-
-  if List.length issue_list == 0 then []
+  if issue_list = [] then map
   else
-    let _ =
-      List.iter2
-        (fun content num ->
-          Printf.eprintf "contents: %s, num: %d\n" content num;
-          if num != int_of_string Sys.argv.(1) then
-            let _ = map_ConNum := ConNum.add content num !map_ConNum in
-            Printf.eprintf "put %d\n" num)
-        issue_list num_list
-    in
+    List.fold_left2
+      (fun map body number -> IntMap.add number body map)
+      map issue_list numbers
+    |> get_issues repo (page_num + 1)
 
-    issue_list @ get_issues (page_num + 1) res
+let find_max_sim issue_num issue_contents rapid_key threshold map =
+  let headers =
+    Cohttp.Header.of_list
+      [
+        ("X-RapidAPI-Key", rapid_key);
+        ("X-RapidAPI-Host", "twinword-text-similarity-v1.p.rapidapi.com");
+        ("content-type", "application/x-www-form-urlencoded");
+      ]
+  in
 
-let sim_header =
-  Cohttp.Header.of_list
-    [
-      ("X-RapidAPI-Key", Sys.argv.(4));
-      ("X-RapidAPI-Host", "twinword-text-similarity-v1.p.rapidapi.com");
-      ("content-type", "application/x-www-form-urlencoded");
-    ]
-
-let threshold_sim =
-  if Option.is_some (float_of_string_opt Sys.argv.(6)) then
-    float_of_string Sys.argv.(6)
-  else 0.20
-
-let max_sim = ref (-1.0)
-let max_contents = ref ""
-
-let () =
-  List.iter
-    (fun issue_contents ->
-      let text1 =
-        Yojson.Basic.to_string
-          (`String (String.sub Sys.argv.(2) 9 (String.length Sys.argv.(2) - 9)))
-      in
-      let text2 = Yojson.Basic.to_string (`String issue_contents) in
-      Printf.eprintf "Text1:%s\nText2:%s\n\n" text1 text2;
-
-      if ConNum.mem issue_contents !map_ConNum then (
+  IntMap.fold
+    (fun num content (max_sim, max_num) ->
+      if num = issue_num then (max_sim, max_num)
+      else
+        let text1 =
+          Yojson.Basic.to_string
+            (`String
+              (String.sub issue_contents 9 (String.length issue_contents - 9)))
+        in
+        let text2 = Yojson.Basic.to_string (`String content) in
+        Printf.eprintf "Text1:%s\nText2:%s\n\n" text1 text2;
         let _ = Printf.eprintf "Comparison %s and %s\n" text1 text2 in
         let body =
-          Client.get ~headers:sim_header
+          Client.get ~headers
             (Uri.of_string
                ("https://twinword-text-similarity-v1.p.rapidapi.com/similarity/?"
               ^ "text1=" ^ text1 ^ "&" ^ "text2=" ^ text2))
           >>= fun (_, body) -> Cohttp_lwt.Body.to_string body
         in
-
         let body = Lwt_main.run body in
         let json_body = Yojson.Basic.from_string body in
         let open Yojson.Basic.Util in
@@ -93,56 +74,65 @@ let () =
         let cur_sim =
           List.hd ([ json_body ] |> filter_member "similarity" |> filter_number)
         in
-        if cur_sim > threshold_sim && cur_sim > !max_sim then
-          let _ = max_sim := cur_sim in
-          let _ = max_contents := issue_contents in
-          Printf.eprintf "max updated! sim: %f, contents: %s\n" !max_sim
-            !max_contents))
-    (get_issues 1 [])
+        if cur_sim > threshold && cur_sim > max_sim then (cur_sim, num)
+        else (max_sim, max_num))
+    map (0.0, -1)
 
-let _ = Printf.eprintf "%s has %f\n" !max_contents !max_sim
-
-let _ =
-  if !max_sim != -1.0 then
-    let _ =
-      Sys.command
-        ("echo \"dup_num="
-        ^ Int.to_string (ConNum.find !max_contents !map_ConNum)
-        ^ "\" >> $GITHUB_OUTPUT")
+let write_comment repo repo_key max_num =
+  let _ =
+    Sys.command
+      ("echo \"dup_num=" ^ Int.to_string max_num ^ "\" >> $GITHUB_OUTPUT")
+  in
+  let body =
+    (* Leave a comment *)
+    let comment_body =
+      Cohttp_lwt.Body.of_string
+        (Yojson.Basic.to_string
+           (`Assoc
+             [
+               ( "body",
+                 `String
+                   ("Possible duplication detected. Refer to #"
+                  ^ Int.to_string max_num) );
+             ]))
     in
-    let detected_num = ConNum.find !max_contents !map_ConNum in
-
-    let body =
-      (* Leave a comment *)
-      let comment_body =
-        Cohttp_lwt.Body.of_string
-          (Yojson.Basic.to_string
-             (`Assoc
-               [
-                 ( "body",
-                   `String
-                     ("Possible duplication detected. Refer to #"
-                    ^ Int.to_string detected_num) );
-               ]))
-      in
-      let comment_header =
-        Cohttp.Header.add_authorization
-          (Cohttp.Header.init_with "accept" "application/vnd.github+json")
-          (Cohttp.Auth.credential_of_string ("Bearer " ^ Sys.argv.(5)))
-      in
-
-      Client.post ~body:comment_body ~headers:comment_header
-        (Uri.of_string
-           ("https://api.github.com/repos/" ^ Sys.argv.(3) ^ "/issues/"
-          ^ Sys.argv.(1) ^ "/comments"))
-      >>= fun (resp, body) ->
-      let code = resp |> Response.status |> Code.code_of_status in
-      Printf.eprintf "Response code: %d\n" code;
-      Cohttp_lwt.Body.to_string body
+    let comment_header =
+      Cohttp.Header.add_authorization
+        (Cohttp.Header.init_with "accept" "application/vnd.github+json")
+        (Cohttp.Auth.credential_of_string ("Bearer " ^ repo_key))
     in
 
-    let body = Lwt_main.run body in
-    print_endline body
+    Client.post ~body:comment_body ~headers:comment_header
+      (Uri.of_string
+         ("https://api.github.com/repos/" ^ repo ^ "/issues/" ^ Sys.argv.(1)
+        ^ "/comments"))
+    >>= fun (resp, body) ->
+    let code = resp |> Response.status |> Code.code_of_status in
+    Printf.eprintf "Response code: %d\n" code;
+    Cohttp_lwt.Body.to_string body
+  in
+
+  let body = Lwt_main.run body in
+  print_endline body
+
+let main argv =
+  let issue_num = int_of_string argv.(1) in
+  let issue_contents = argv.(2) in
+  let repo = argv.(3) in
+  let rapid_key = argv.(4) in
+  let repo_key = argv.(5) in
+  let threshold =
+    if Option.is_some (float_of_string_opt Sys.argv.(6)) then
+      float_of_string Sys.argv.(6)
+    else 0.20
+  in
+  let map = get_issues repo 1 IntMap.empty in
+  let max_sim, max_num =
+    find_max_sim issue_num issue_contents rapid_key threshold map
+  in
+  if max_sim != -1.0 then write_comment repo repo_key max_num
   else
     let _ = Sys.command "echo \"dup_num=-1\" >> $GITHUB_OUTPUT" in
     ()
+
+let _ = main Sys.argv
