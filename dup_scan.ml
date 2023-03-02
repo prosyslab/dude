@@ -89,7 +89,7 @@ let () =
         let body = Lwt_main.run body in
         let json_body = Yojson.Basic.from_string body in
         let open Yojson.Basic.Util in
-        Printf.eprintf "%s\n" body;
+        Printf.eprintf "body: %s\n" body;
         let cur_sim =
           List.hd ([ json_body ] |> filter_member "similarity" |> filter_number)
         in
