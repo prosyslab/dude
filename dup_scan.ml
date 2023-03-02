@@ -76,7 +76,7 @@ let () =
       let text2 = Yojson.Basic.to_string (`String issue_contents) in
       Printf.eprintf "Text1:%s\nText2:%s\n\n" text1 text2;
 
-      if ConNum.mem issue_contents !map_ConNum then
+      if ConNum.mem issue_contents !map_ConNum then (
         let _ = Printf.eprintf "Comparison %s and %s\n" text1 text2 in
         let body =
           Client.get ~headers:sim_header
@@ -89,6 +89,7 @@ let () =
         let body = Lwt_main.run body in
         let json_body = Yojson.Basic.from_string body in
         let open Yojson.Basic.Util in
+        Printf.eprintf "%s\n" body;
         let cur_sim =
           List.hd ([ json_body ] |> filter_member "similarity" |> filter_number)
         in
@@ -96,7 +97,7 @@ let () =
           let _ = max_sim := cur_sim in
           let _ = max_contents := issue_contents in
           Printf.eprintf "max updated! sim: %f, contents: %s\n" !max_sim
-            !max_contents)
+            !max_contents))
     (get_issues 1 [])
 
 let _ = Printf.eprintf "%s has %f\n" !max_contents !max_sim
