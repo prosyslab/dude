@@ -118,6 +118,7 @@ let main argv =
       float_of_string Sys.argv.(6)
     else 0.20
   in
+  assert (rapid_key <> "");
   let map = get_issues repo 1 IntMap.empty in
   let max_sim, max_num =
     find_max_sim issue_num issue_contents rapid_key threshold map
