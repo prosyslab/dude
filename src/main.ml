@@ -75,7 +75,7 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
         in
         if cur_sim > threshold && cur_sim > max_sim then (cur_sim, num)
         else (max_sim, max_num))
-    map (0.0, -1)
+    map (-1.0, -1)
 
 let write_comment issue_num repo repo_key max_num =
   let body =
