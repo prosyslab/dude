@@ -122,6 +122,7 @@ let main argv =
   let max_sim, max_num =
     find_max_sim issue_num issue_contents rapid_key threshold map
   in
-  if max_sim != -1.0 then write_comment issue_num repo repo_key max_num else ()
+  if max_sim > threshold then write_comment issue_num repo repo_key max_num
+  else ()
 
 let _ = main Sys.argv
