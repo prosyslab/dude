@@ -71,7 +71,11 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
         let open Yojson.Basic.Util in
         Printf.eprintf "body: %s\n" body;
         let cur_sim =
-          List.hd ([ json_body ] |> filter_member "similarity" |> filter_number)
+          match
+            [ json_body ] |> filter_member "similarity" |> filter_number
+          with
+          | h :: _ -> h
+          | [] -> -1.0
         in
         if cur_sim > threshold && cur_sim > max_sim then (cur_sim, num)
         else (max_sim, max_num))
