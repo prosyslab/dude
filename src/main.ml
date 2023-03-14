@@ -57,8 +57,7 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
               (String.sub issue_contents 9 (String.length issue_contents - 9)))
         in
         let text2 = Yojson.Basic.to_string (`String content) in
-        Printf.eprintf "Text1:%s\nText2:%s\n\n" text1 text2;
-        let _ = Printf.eprintf "Comparison %s and %s\n" text1 text2 in
+        Printf.eprintf "Comparison\nText1:%s\nText2:%s\n\n" text1 text2;
         let body =
           Client.get ~headers
             (Uri.of_string
@@ -127,6 +126,7 @@ let main argv =
   let max_sim, max_num =
     find_max_sim issue_num issue_contents rapid_key threshold map
   in
+  Printf.eprintf "max_sim: %f, max_num: %d\n" max_sim max_num;
   if max_sim > threshold then write_comment issue_num repo repo_key max_num
   else ()
 
