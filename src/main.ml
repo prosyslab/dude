@@ -117,16 +117,15 @@ let main argv =
   let rapid_key = argv.(4) in
   let repo_key = argv.(5) in
   let threshold =
-    if Option.is_some (float_of_string_opt Sys.argv.(6)) then
-      float_of_string Sys.argv.(6)
-    else 0.20
+    match float_of_string_opt Sys.argv.(6) with Some f -> f | None -> 0.20
   in
   assert (rapid_key <> "");
   let map = get_issues repo 1 IntMap.empty in
   let max_sim, max_num =
     find_max_sim issue_num issue_contents rapid_key threshold map
   in
-  Printf.eprintf "max_sim: %f, max_num: %d\n" max_sim max_num;
+  Printf.eprintf "threshold: %f, max_sim: %f, max_num: %d\n" threshold max_sim
+    max_num;
   if max_sim > threshold then write_comment issue_num repo repo_key max_num
   else ()
 
