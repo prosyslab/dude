@@ -66,7 +66,10 @@ let find_max_sim issue_num issue_contents rapid_key threshold map =
           >>= fun (_, body) -> Cohttp_lwt.Body.to_string body
         in
         let body = Lwt_main.run body in
-        let json_body = Yojson.Basic.from_string body in
+        let json_body =
+          try Yojson.Basic.from_string body
+          with Yojson.Json_error _ -> `String "body"
+        in
         let open Yojson.Basic.Util in
         Printf.eprintf "body: %s\n" body;
         let cur_sim =
